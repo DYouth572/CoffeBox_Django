@@ -1,0 +1,145 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Đơn gọi món - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Màn Hình Bếp{% endblock %}
+
+{% block content %}
+<div class="section-actions">
+    <div>
+        <div class="muted-label">Kitchen Display</div>
+        <h4 class="fw-bold text-brown mb-0">Đơn gọi món cần xử lý</h4>
+    </div>
+    <button class="btn btn-soft" type="button" onclick="location.reload()">
+        <i class="fas fa-rotate-right me-1"></i>Làm mới
+    </button>
+</div>
+
+<div class="panel mb-4">
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Khách hàng, box hoặc mã đơn...">
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Tất cả</option>
+                    <option value="submitted">Đã gửi</option>
+                    <option value="preparing">Đang pha chế</option>
+                    <option value="served">Đã phục vụ</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table">
+    <div class="table-responsive">
+        <table class="table table-hover" id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Box</th>
+                    <th>Món đã gọi</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr class="{% if order.status == 'submitted' %}order-new{% endif %}" data-status="{{ order.status }}" data-search="#ORD-{{ order.id }} {{ order.customer.first_name|default:order.customer.username }} {{ order.booking.box.name }}">
+                    <td>
+                        <strong>#ORD-{{ order.id }}</strong>
+                        {% if order.status == 'submitted' %}<br><span class="new-signal">Đơn mới</span>{% endif %}
+                        <br><small class="text-muted">{{ order.created_at|date:"H:i d/m/Y" }}</small>
+                    </td>
+                    <td>
+                        <strong>{{ order.customer.first_name|default:order.customer.username }}</strong>
+                        <br><small class="text-muted">{{ order.customer.phone|default:"Chưa có SĐT" }}</small>
+                    </td>
+                    <td>{{ order.booking.box.name }}</td>
+                    <td>
+                        {% for item in order.items.all %}
+                        <div class="small d-flex justify-content-between gap-3">
+                            <span>{{ item.product_name }} x{{ item.quantity }}</span>
+                            <span class="text-muted">{{ item.price|floatformat:0 }}đ</span>
+                        </div>
+                        {% empty %}
+                        <small class="text-muted">Không có món</small>
+                        {% endfor %}
+                    </td>
+                    <td class="fw-bold text-brown">{{ order.total_price|floatformat:0 }}đ</td>
+                    <td><span class="badge badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                    <td>
+                        <form method="post" action="{% url 'admin_order_status' order.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            {% if order.status == 'submitted' %}
+                                <input type="hidden" name="status" value="preparing">
+                                <button class="btn btn-brown btn-sm" title="Nhận đơn">
+                                    <i class="fas fa-hand-paper me-1"></i>Nhận đơn
+                                </button>
+                            {% elif order.status == 'preparing' %}
+                                <input type="hidden" name="status" value="served">
+                                <button class="btn btn-soft btn-sm" title="Hoàn tất phục vụ">
+                                    <i class="fas fa-check me-1"></i>Hoàn tất
+                                </button>
+                            {% else %}
+                                <span class="text-muted small">Đã xong</span>
+                            {% endif %}
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty-state"><i class="fas fa-receipt"></i><br>Chưa có đơn gọi món nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const orderRows = Array.from(document.querySelectorAll('#ordersTable tbody tr[data-status]'));
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const hasNewOrder = orderRows.some(row => row.dataset.status === 'submitted');
+
+    function filterOrders() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const status = statusFilter.value;
+        orderRows.forEach(row => {
+            const okText = row.dataset.search.toLowerCase().includes(keyword);
+            const okStatus = !status || row.dataset.status === status;
+            row.style.display = okText && okStatus ? '' : 'none';
+        });
+    }
+
+    function playNewOrderSignal() {
+        if (!hasNewOrder || !window.AudioContext) return;
+        try {
+            const audioContext = new AudioContext();
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 880;
+            gain.gain.value = 0.04;
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            oscillator.start();
+            oscillator.stop(audioContext.currentTime + 0.18);
+        } catch (error) {
+            // Browser có thể chặn âm thanh tự động; tín hiệu thị giác vẫn hoạt động.
+        }
+    }
+
+    searchInput?.addEventListener('input', filterOrders);
+    statusFilter?.addEventListener('change', filterOrders);
+    window.addEventListener('load', playNewOrderSignal);
+    setInterval(() => location.reload(), 15000);
+</script>
+{% endblock %}

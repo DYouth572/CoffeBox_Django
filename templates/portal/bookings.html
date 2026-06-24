@@ -1,0 +1,150 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Đơn đặt box - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Quản Lý Đơn Đặt Box{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6"><div class="stat-card"><div class="stat-label">Chờ phê duyệt</div><div class="stat-value">{{ pending_count }}</div></div></div>
+    <div class="col-md-3 col-sm-6"><div class="stat-card"><div class="stat-label">Chờ check-in</div><div class="stat-value">{{ confirmed_count }}</div></div></div>
+    <div class="col-md-3 col-sm-6"><div class="stat-card"><div class="stat-label">Chờ duyệt hủy</div><div class="stat-value">{{ cancellation_pending_count }}</div></div></div>
+    <div class="col-md-3 col-sm-6"><div class="stat-card"><div class="stat-label">Đang sử dụng</div><div class="stat-value">{{ active_count }}</div></div></div>
+</div>
+
+<div class="panel mb-4">
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Tên khách, số điện thoại hoặc box...">
+            </div>
+            <div class="col-lg-3">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Tất cả</option>
+                    <option value="pending">Chờ phê duyệt</option>
+                    <option value="confirmed">Chờ check-in</option>
+                    <option value="active">Đang sử dụng</option>
+                    <option value="cancellation_pending">Chờ duyệt hủy</option>
+                    <option value="completed">Hoàn thành</option>
+                    <option value="cancelled">Đã hủy</option>
+                </select>
+            </div>
+            <div class="col-lg-3 d-flex align-items-end">
+                <button class="btn btn-soft w-100" type="button" onclick="resetFilters()"><i class="fas fa-rotate-right me-1"></i>Làm mới lọc</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table">
+    <div class="table-responsive">
+        <table class="table table-hover" id="bookingsTable">
+            <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Box</th>
+                    <th>Thời gian</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr data-status="{{ booking.status }}" data-search="{{ booking.customer.first_name|default:booking.customer.username }} {{ booking.customer.phone }} {{ booking.box.name }}">
+                    <td>
+                        <strong>#VAT-{{ booking.id }}</strong>
+                        <br><small class="text-muted">Tạo: {{ booking.created_at|date:"H:i d/m/Y" }}</small>
+                        {% if booking.is_short_notice %}
+                        <br><span class="badge bg-danger">Đặt sát giờ</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ booking.customer.first_name|default:booking.customer.username }}</strong><br><small class="text-muted">{{ booking.customer.phone|default:"Chưa có SĐT" }}</small></td>
+                    <td>{{ booking.box.name }}</td>
+                    <td><small>{{ booking.start_time|date:"H:i d/m/Y" }}<br>{{ booking.end_time|date:"H:i d/m/Y" }}</small></td>
+                    <td class="fw-bold text-brown">{{ booking.total_price|floatformat:0 }}đ</td>
+                    <td>
+                        <span class="badge badge-{{ booking.status }}">{{ booking.get_status_display }}</span>
+                        {% if booking.status == 'cancellation_pending' %}
+                        <br><small class="text-muted">Lý do: {{ booking.cancellation_reason }}</small>
+                        <br>
+                        {% if booking.cancellation_in_policy %}
+                            <span class="badge bg-success">Đúng chính sách 6-24h</span>
+                        {% else %}
+                            <span class="badge bg-danger">Ngoài chính sách 6-24h</span>
+                        {% endif %}
+                        {% endif %}
+                        {% if booking.status == 'cancelled' and booking.cancellation_note %}
+                        <br><small class="text-muted">{{ booking.cancellation_note }}</small>
+                        {% endif %}
+                    </td>
+                    <td style="min-width: 230px;">
+                        {% if booking.status == 'pending' %}
+                        <form method="post" action="{% url 'admin_booking_status' booking.id %}" class="d-inline">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="action" value="approve">
+                            <button class="btn btn-brown btn-sm">Phê duyệt</button>
+                        </form>
+                        {% elif booking.status == 'confirmed' %}
+                        <form method="post" action="{% url 'admin_booking_status' booking.id %}" class="d-inline">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="action" value="checkin">
+                            <button class="btn btn-brown btn-sm">Check-in</button>
+                        </form>
+                        {% elif booking.status == 'cancellation_pending' %}
+                        <form method="post" action="{% url 'admin_booking_status' booking.id %}" class="mb-2">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="action" value="confirm_cancel">
+                            <input type="text" name="note" class="form-control form-control-sm mb-1" placeholder="Ghi chú xác nhận hủy">
+                            <button class="btn btn-danger btn-sm">Xác nhận hủy</button>
+                        </form>
+                        <form method="post" action="{% url 'admin_booking_status' booking.id %}">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="action" value="reject_cancel">
+                            <input type="text" name="message" class="form-control form-control-sm mb-1" placeholder="Tin nhắn từ chối cho khách">
+                            <button class="btn btn-soft btn-sm">Từ chối hủy</button>
+                        </form>
+                        {% endif %}
+
+                        {% if booking.status in 'pending confirmed active cancellation_pending' %}
+                        <form method="post" action="{% url 'admin_booking_status' booking.id %}" class="mt-2">
+                            {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}"><input type="hidden" name="action" value="staff_cancel">
+                            <input type="text" name="note" class="form-control form-control-sm mb-1" placeholder="Lý do admin/staff hủy">
+                            <button class="btn btn-outline-danger btn-sm">Admin/staff hủy</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty-state"><i class="fas fa-calendar-xmark"></i><br>Không có đơn đặt nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const rows = Array.from(document.querySelectorAll('#bookingsTable tbody tr[data-status]'));
+
+    function applyFilters() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const status = statusFilter.value;
+        rows.forEach(row => {
+            const matchesText = row.dataset.search.toLowerCase().includes(keyword);
+            const matchesStatus = !status || row.dataset.status === status;
+            row.style.display = matchesText && matchesStatus ? '' : 'none';
+        });
+    }
+
+    function resetFilters() {
+        searchInput.value = '';
+        statusFilter.value = '';
+        applyFilters();
+    }
+
+    searchInput?.addEventListener('input', applyFilters);
+    statusFilter?.addEventListener('change', applyFilters);
+</script>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Người dùng - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Quản Lý Người Dùng{% endblock %}
+
+{% block content %}
+<div class="section-actions">
+    <div>
+        <div class="muted-label">Phân quyền tài khoản</div>
+        <h4 class="fw-bold text-brown mb-0">Người dùng hệ thống</h4>
+    </div>
+</div>
+
+<div class="panel mb-4">
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Tên đăng nhập, họ tên hoặc số điện thoại...">
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label">Vai trò</label>
+                <select class="form-select" id="roleFilter">
+                    <option value="">Tất cả</option>
+                    <option value="customer">Khách hàng</option>
+                    <option value="staff">Nhân viên</option>
+                    <option value="admin">Quản trị viên</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table">
+    <div class="table-responsive">
+        <table class="table table-hover" id="usersTable">
+            <thead>
+                <tr>
+                    <th>Tài khoản</th>
+                    <th>Liên hệ</th>
+                    <th>Vai trò</th>
+                    <th>Quyền Django</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr data-role="{{ user.role }}" data-search="{{ user.username }} {{ user.first_name }} {{ user.last_name }} {{ user.phone }}">
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" class="avatar" alt="{{ user.username }}">
+                            {% else %}
+                            <div class="avatar bg-secondary text-white fw-bold">{{ user.username|first|upper }}</div>
+                            {% endif %}
+                            <div>
+                                <strong>{{ user.first_name|default:user.username }}</strong>
+                                <br><small class="text-muted">@{{ user.username }}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td><small>{{ user.email|default:"Chưa có email" }}<br>{{ user.phone|default:"Chưa có SĐT" }}</small></td>
+                    <td><span class="badge badge-{{ user.role }}">{{ user.get_role_display }}</span></td>
+                    <td>
+                        {% if user.is_superuser %}<span class="badge badge-admin">Superuser</span>{% endif %}
+                        {% if user.is_staff %}<span class="badge badge-staff">Staff</span>{% endif %}
+                        {% if not user.is_staff and not user.is_superuser %}<span class="badge badge-customer">Thường</span>{% endif %}
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'admin_user_role' user.id %}" class="d-flex gap-2 align-items-center">
+                            {% csrf_token %}
+                            <select name="role" class="form-select form-select-sm" style="min-width: 145px;" {% if user.is_superuser %}disabled{% endif %}>
+                                <option value="customer" {% if user.role == 'customer' %}selected{% endif %}>Khách hàng</option>
+                                <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Nhân viên</option>
+                                <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Quản trị viên</option>
+                            </select>
+                            <button class="icon-btn" title="Cập nhật" {% if user.is_superuser %}disabled{% endif %}><i class="fas fa-check"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="empty-state"><i class="fas fa-users"></i><br>Chưa có người dùng nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const userRows = Array.from(document.querySelectorAll('#usersTable tbody tr[data-role]'));
+    const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+
+    function filterUsers() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const role = roleFilter.value;
+        userRows.forEach(row => {
+            const okText = row.dataset.search.toLowerCase().includes(keyword);
+            const okRole = !role || row.dataset.role === role;
+            row.style.display = okText && okRole ? '' : 'none';
+        });
+    }
+
+    searchInput?.addEventListener('input', filterUsers);
+    roleFilter?.addEventListener('change', filterUsers);
+</script>
+{% endblock %}

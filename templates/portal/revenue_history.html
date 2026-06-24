@@ -1,0 +1,141 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Thống kê doanh thu - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Thống Kê Doanh Thu{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-12">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-filter me-2"></i>Tìm kiếm doanh thu</h5>
+            </div>
+            <div class="p-3">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Chọn ngày</label>
+                        <input type="date" class="form-control" name="date" value="{{ selected_date_str }}" id="dateInput">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-brown w-100"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <a href="?date=" class="btn btn-soft w-100"><i class="fas fa-redo me-2"></i>Hôm nay</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Doanh thu phòng</div>
+                    <div class="stat-value">{{ booking_total|floatformat:0 }}đ</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-door-open"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Doanh thu món ăn</div>
+                    <div class="stat-value">{{ order_total|floatformat:0 }}đ</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-utensils"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Tổng doanh thu</div>
+                    <div class="stat-value">{{ total_revenue|floatformat:0 }}đ</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-6">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-door-open me-2"></i>Doanh thu từ phòng ({{ booking_revenue.count }} đơn)</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Khách hàng</th>
+                            <th>Box</th>
+                            <th>Thời gian</th>
+                            <th>Tổng tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in booking_revenue %}
+                        <tr>
+                            <td>
+                                <strong>{{ booking.customer.first_name|default:booking.customer.username }}</strong>
+                                <br><small class="text-muted">{{ booking.customer.phone|default:"Chưa có SĐT" }}</small>
+                            </td>
+                            <td>{{ booking.box.name }}</td>
+                            <td><small>{{ booking.start_time|date:"H:i d/m/Y" }}<br>{{ booking.end_time|date:"H:i d/m/Y" }}</small></td>
+                            <td class="fw-bold text-brown">{{ booking.total_price|floatformat:0 }}đ</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">Không có doanh thu từ phòng.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-6">
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-utensils me-2"></i>Doanh thu từ đơn gọi ({{ order_revenue.count }} đơn)</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách / Box</th>
+                            <th>Thời gian</th>
+                            <th>Tổng tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in order_revenue %}
+                        <tr>
+                            <td>
+                                <strong>#ORD-{{ order.id }}</strong>
+                            </td>
+                            <td>
+                                {{ order.customer.first_name|default:order.customer.username }}<br>
+                                <small class="text-muted">{{ order.booking.box.name }}</small>
+                            </td>
+                            <td><small>{{ order.created_at|date:"H:i d/m/Y" }}</small></td>
+                            <td class="fw-bold text-brown">{{ order.total_price|floatformat:0 }}đ</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="empty-state">Không có doanh thu từ đơn gọi.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
