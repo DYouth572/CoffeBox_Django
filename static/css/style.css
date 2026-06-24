@@ -1,0 +1,53 @@
+/* D:\vat_coffee_box\static\css\style.css */
+
+/* Định nghĩa màu sắc thương hiệu */
+:root {
+    --brand-brown: #5d3a2e;
+    --light-bg: #fcfcfc;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Hero Section */
+.hero-section {
+    background-color: var(--brand-brown);
+    padding: 60px;
+    border-radius: 40px;
+    color: white;
+    box-shadow: 0 10px 20px rgba(93, 58, 46, 0.2);
+}
+
+/* Card thiết kế bo góc, đổ bóng */
+.card {
+    border-radius: 25px !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Nút bấm (Buttons) */
+.btn-brown {
+    background-color: var(--brand-brown);
+    color: white;
+    border-radius: 20px;
+    padding: 8px 20px;
+}
+
+.btn-brown:hover {
+    background-color: #4a2e25;
+    color: white;
+}
+
+/* Ảnh trong Menu */
+.card-img-top {
+    height: 120px;
+    object-fit: contain;
+    padding: 10px;
+}
