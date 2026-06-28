@@ -282,33 +282,6 @@ Code example for loading from .env
 
 ---
 
-## ❓ FAQ Section
-
-**Q: Can I use other databases?**
-A: Yes! Django supports PostgreSQL, Oracle, etc.
-
-**Q: How to add email notifications?**
-A: Configure email backend + write signals
-
-**Q: Can I customize the homepage?**
-A: Yes! Edit templates and CSS
-
-**Q: How to add payment integration?**
-A: Integrate Stripe/Paypal API
-
-**Q: How to get support?**
-A: Create GitHub issue or email support
-
----
-
-## 📞 Contact & Support
-
-- Email: support@vatcoffeebox.com
-- GitHub: repository link
-- Website: project website
-
----
-
 ## 📊 Content Statistics
 
 | Section | Lines | Words |
@@ -327,44 +300,3 @@ A: Create GitHub issue or email support
 
 ---
 
-## ✅ Quality Checklist
-
-- ✅ Clear section headers with emojis
-- ✅ Table of contents/navigation
-- ✅ Step-by-step instructions
-- ✅ Code examples (bash, python, powershell, sql)
-- ✅ Platform-specific instructions (Windows, macOS, Linux)
-- ✅ Detailed feature matrix
-- ✅ User role-specific guides (customer, staff, admin)
-- ✅ Troubleshooting section
-- ✅ Deployment options
-- ✅ Professional formatting
-- ✅ Multiple languages ready (Tiếng Việt)
-- ✅ Links to references & support
-- ✅ Project structure diagram
-- ✅ FAQ section
-- ✅ Contact information
-
----
-
-## 🎯 How to Use This README
-
-1. **First-time setup**: Follow sections in order (Tổng Quan → Cài Đặt → Chạy Dự Án)
-2. **Daily use**: Jump to relevant user guide (Customer/Staff/Admin)
-3. **Troubleshooting**: Check 🐛 section for common issues
-4. **Production**: See 📱 deployment section
-5. **Reference**: Check links in 📚 section
-
----
-
-## 📝 Notes
-
-- All instructions are detailed with multiple options (Windows/Mac/Linux)
-- Code examples are ready to copy-paste
-- Feature matrix shows what each role can do
-- Troubleshooting covers most common errors
-- Multiple access points clearly documented
-
----
-
-**README.md is now production-ready with comprehensive, easy-to-follow instructions!** ✨
