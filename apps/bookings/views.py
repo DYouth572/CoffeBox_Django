@@ -82,10 +82,12 @@ def booking_detail(request, booking_id):
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from .models import SupportRequest, Booking
+
+@login_required # Thêm decorator để đảm bảo request.user luôn tồn tại
 def send_support_request(request, booking_id):
     if request.method == 'POST':
-        # Dùng get_object_or_404 để tránh lỗi nếu ID không tồn tại
-        booking = get_object_or_404(Booking, id=booking_id)
+        #Thêm customer=request.user để bảo mật, chỉ chủ phòng mới tìm thấy đơn này
+        booking = get_object_or_404(Booking, id=booking_id, customer=request.user)
         message = request.POST.get('message')
         
         if message:
@@ -128,7 +130,3 @@ def request_booking_cancellation(request, booking_id):
     booking.box.save(update_fields=['status'])
     messages.success(request, "Yêu cầu hủy của bạn đã được nhận, chúng tôi sẽ xử lý trong 15 phút.")
     return redirect('home')
-
-
-
-    
