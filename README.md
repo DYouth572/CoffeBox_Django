@@ -5,6 +5,14 @@
 
 ---
 
+<p align="center">
+  <a href="https://youtu.be/tkKzp_mt_-c">
+    <img src="https://img.youtube.com/vi/tkKzp_mt_-c/maxresdefault.jpg" alt="Watch the Demo Video" width="750">
+  </a>
+  <br>
+  <i>🎬 Nhấp vào hình ảnh để xem video demo chi tiết toàn bộ tính năng hệ thống (Thời lượng: 8 phút)</i>
+</p>
+
 ## 📋 Sections Added
 
 ### 1. **Header & Navigation** 🎯
