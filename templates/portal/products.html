@@ -1,0 +1,151 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Thực đơn - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Quản Lý Thực Đơn{% endblock %}
+
+{% block content %}
+<div class="section-actions">
+    <div>
+        <div class="muted-label">Menu phục vụ trong box</div>
+        <h4 class="fw-bold text-brown mb-0">Danh sách sản phẩm</h4>
+    </div>
+    {% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+    <button class="btn btn-brown" data-bs-toggle="modal" data-bs-target="#addProductModal"><i class="fas fa-plus me-1"></i>Thêm sản phẩm</button>
+    {% endif %}
+</div>
+
+<div class="panel mb-4">
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Tên món hoặc đồ uống...">
+            </div>
+            <div class="col-lg-4">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Tất cả</option>
+                    <option value="active">Đang bán</option>
+                    <option value="inactive">Ngừng bán</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table">
+    <div class="table-responsive">
+        <table class="table table-hover" id="productsTable">
+            <thead>
+                <tr>
+                    <th>Hình ảnh</th>
+                    <th>Tên sản phẩm</th>
+                    <th>Giá</th>
+                    <th>Tồn kho</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for product in products %}
+                <tr data-status="{% if product.is_active %}active{% else %}inactive{% endif %}" data-search="{{ product.name }}">
+                    <td>
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="thumb" alt="{{ product.name }}">
+                        {% else %}
+                            <div class="thumb d-flex align-items-center justify-content-center"><i class="fas fa-image text-muted"></i></div>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ product.name }}</strong></td>
+                    <td class="fw-bold text-brown">{{ product.price|floatformat:0 }}đ</td>
+                    <td>
+                        <span class="badge {% if product.stock > 10 %}bg-success{% elif product.stock > 0 %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ product.stock }}</span>
+                    </td>
+                    <td>
+                        {% if product.is_active %}
+                        <span class="badge badge-active">Đang bán</span>
+                        {% else %}
+                        <span class="badge badge-completed">Ngừng bán</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+                        <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}" title="Sửa"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn text-danger" data-bs-toggle="modal" data-bs-target="#deleteProductModal{{ product.id }}" title="Xóa"><i class="fas fa-trash"></i></button>
+                        {% else %}
+                        <span class="text-muted small">Chỉ xem</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="empty-state"><i class="fas fa-mug-hot"></i><br>Chưa có sản phẩm nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+<div class="modal fade" id="addProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Thêm sản phẩm</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'admin_product_add' %}">
+                {% csrf_token %}
+                <div class="modal-body">{% include "portal/partials/product_form_fields.html" %}</div>
+                <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn btn-brown">Lưu sản phẩm</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for product in products %}
+<div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Sửa {{ product.name }}</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'admin_product_edit' product.id %}">
+                {% csrf_token %}
+                <div class="modal-body">{% include "portal/partials/product_form_fields.html" with product=product %}</div>
+                <div class="modal-footer"><button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button><button type="submit" class="btn btn-brown">Cập nhật</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Xóa sản phẩm</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">Bạn chắc chắn muốn xóa <strong>{{ product.name }}</strong>?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                <form method="post" action="{% url 'admin_product_delete' product.id %}">{% csrf_token %}<button class="btn btn-danger rounded-pill">Xóa</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const productRows = Array.from(document.querySelectorAll('#productsTable tbody tr[data-status]'));
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+
+    function filterProducts() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const status = statusFilter.value;
+        productRows.forEach(row => {
+            const okText = row.dataset.search.toLowerCase().includes(keyword);
+            const okStatus = !status || row.dataset.status === status;
+            row.style.display = okText && okStatus ? '' : 'none';
+        });
+    }
+
+    searchInput?.addEventListener('input', filterProducts);
+    statusFilter?.addEventListener('change', filterProducts);
+</script>
+{% endblock %}

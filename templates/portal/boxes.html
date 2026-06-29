@@ -1,0 +1,164 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Box - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Quản Lý Không Gian Box{% endblock %}
+
+{% block content %}
+<div class="section-actions">
+    <div>
+        <div class="muted-label">Không gian phục vụ</div>
+        <h4 class="fw-bold text-brown mb-0">Danh sách box</h4>
+    </div>
+    {% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+    <button class="btn btn-brown" data-bs-toggle="modal" data-bs-target="#addBoxModal"><i class="fas fa-plus me-1"></i>Thêm box</button>
+    {% endif %}
+</div>
+
+<div class="panel mb-4">
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-lg-7">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" class="form-control" id="searchInput" placeholder="Tên box hoặc mô tả...">
+            </div>
+            <div class="col-lg-5">
+                <label class="form-label">Trạng thái</label>
+                <select class="form-select" id="statusFilter">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="available">Đang trống</option>
+                    <option value="pending">Chờ phê duyệt</option>
+                    <option value="confirmed">Chờ check-in</option>
+                    <option value="active">Đang sử dụng</option>
+                    <option value="completed">Đã hoàn thành</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="admin-table">
+    <div class="table-responsive">
+        <table class="table table-hover" id="boxesTable">
+            <thead>
+                <tr>
+                    <th>Hình ảnh</th>
+                    <th>Tên box</th>
+                    <th>Loại</th>
+                    <th>Sức chứa</th>
+                    <th>Giá/giờ</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for box in boxes %}
+                <tr data-status="{{ box.status }}" data-search="{{ box.name }} {{ box.description }}">
+                    <td>
+                        {% if box.image %}
+                            <img src="{{ box.image.url }}" class="thumb" alt="{{ box.name }}">
+                        {% else %}
+                            <div class="thumb d-grid place-items-center"><i class="fas fa-image text-muted"></i></div>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ box.name }}</strong><br><small class="text-muted">{{ box.description|default:"Chưa có mô tả"|truncatewords:8 }}</small></td>
+                    <td><span class="badge bg-light text-dark border">{{ box.category.name|default:"Chưa phân loại" }}</span></td>
+                    <td><strong>{{ box.capacity }}</strong> người</td>
+                    <td class="fw-bold text-brown">{{ box.price_per_hour|floatformat:0 }}đ</td>
+                    <td><span class="badge badge-{{ box.status }}">{{ box.get_status_display }}</span></td>
+                    <td>
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+                        <button class="icon-btn" data-bs-toggle="modal" data-bs-target="#editBoxModal{{ box.id }}" title="Sửa"><i class="fas fa-edit"></i></button>
+                        <button class="icon-btn text-danger" data-bs-toggle="modal" data-bs-target="#deleteBoxModal{{ box.id }}" title="Xóa"><i class="fas fa-trash"></i></button>
+                        {% else %}
+                        <span class="text-muted small">Chỉ xem</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="empty-state"><i class="fas fa-cube"></i><br>Chưa có box nào.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if request.user.is_superuser or request.user.is_staff or request.user.role == 'admin' %}
+<div class="modal fade" id="addBoxModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Thêm box mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'admin_box_add' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include "portal/partials/box_form_fields.html" with categories=categories %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-brown">Lưu box</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for box in boxes %}
+<div class="modal fade" id="editBoxModal{{ box.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">Sửa {{ box.name }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'admin_box_edit' box.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% include "portal/partials/box_form_fields.html" with box=box categories=categories %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-brown">Cập nhật</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteBoxModal{{ box.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title fw-bold">Xóa box</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">Bạn chắc chắn muốn xóa <strong>{{ box.name }}</strong>?</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-soft" data-bs-dismiss="modal">Hủy</button>
+                <form method="post" action="{% url 'admin_box_delete' box.id %}">{% csrf_token %}<button class="btn btn-danger rounded-pill">Xóa</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const boxRows = Array.from(document.querySelectorAll('#boxesTable tbody tr[data-status]'));
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+
+    function filterBoxes() {
+        const keyword = (searchInput.value || '').toLowerCase().trim();
+        const status = statusFilter.value;
+        boxRows.forEach(row => {
+            const okText = row.dataset.search.toLowerCase().includes(keyword);
+            const okStatus = !status || row.dataset.status === status;
+            row.style.display = okText && okStatus ? '' : 'none';
+        });
+    }
+
+    searchInput?.addEventListener('input', filterBoxes);
+    statusFilter?.addEventListener('change', filterBoxes);
+</script>
+{% endblock %}

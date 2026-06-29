@@ -1,0 +1,171 @@
+{% extends "portal/base.html" %}
+
+{% block title %}Tổng quan - Vạt Coffee Portal{% endblock %}
+{% block topbar_title %}Tổng Quan Vận Hành{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Tổng box</div>
+                    <div class="stat-value">{{ total_boxes }}</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-cube"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Đang sử dụng</div>
+                    <div class="stat-value">{{ active_bookings }}</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-play-circle"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Chờ xác nhận</div>
+                    <div class="stat-value">{{ pending_bookings }}</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-hourglass-start"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <a href="{% url 'admin_revenue_history' %}" class="stat-card-link">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label">Doanh thu hôm nay</div>
+                        <div class="stat-value">{{ today_revenue|floatformat:0 }}đ</div>
+                    </div>
+                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-calendar-check me-2"></i>Đơn đặt gần đây</h5>
+                <a href="{% url 'admin_bookings' %}" class="btn btn-soft btn-sm">Xem tất cả</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Khách hàng</th>
+                            <th>Box</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <th>Tổng tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for booking in recent_bookings %}
+                        <tr>
+                            <td>
+                                <strong>{{ booking.customer.first_name|default:booking.customer.username }}</strong>
+                                <br><small class="text-muted">{{ booking.customer.phone|default:"Chưa có SĐT" }}</small>
+                            </td>
+                            <td>{{ booking.box.name }}</td>
+                            <td><small>{{ booking.start_time|date:"H:i d/m" }} - {{ booking.end_time|date:"H:i d/m" }}</small></td>
+                            <td><span class="badge badge-{{ booking.status }}">{{ booking.get_status_display }}</span></td>
+                            <td class="fw-bold text-brown">{{ booking.total_price|floatformat:0 }}đ</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="empty-state">Chưa có đơn đặt nào.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-receipt me-2"></i>Đơn gọi món cần xử lý</h5>
+                <a href="{% url 'admin_orders' %}" class="btn btn-soft btn-sm">Mở bếp</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách</th>
+                            <th>Box</th>
+                            <th>Món</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in submitted_orders %}
+                        <tr class="{% if order.status == 'submitted' %}order-new{% endif %}">
+                            <td>
+                                <strong>#ORD-{{ order.id }}</strong>
+                                {% if order.status == 'submitted' %}<br><span class="new-signal">Đơn mới</span>{% endif %}
+                            </td>
+                            <td>{{ order.customer.first_name|default:order.customer.username }}</td>
+                            <td>{{ order.booking.box.name }}</td>
+                            <td><small>{% for item in order.items.all %}{{ item.product_name }} x{{ item.quantity }}{% if not forloop.last %}, {% endif %}{% empty %}Không có món{% endfor %}</small></td>
+                            <td><span class="badge badge-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="empty-state">Không có đơn món đang chờ.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="panel mb-4">
+            <div class="panel-header">
+                <h5 class="panel-title"><i class="fas fa-headset me-2"></i>Yêu cầu hỗ trợ</h5>
+            </div>
+            <div class="p-3">
+                {% for support in support_requests %}
+                <div class="d-flex justify-content-between gap-3 py-3 border-bottom">
+                    <div>
+                        <div class="fw-bold">{{ support.booking.box.name }}</div>
+                        <small class="text-muted">{{ support.booking.customer.first_name|default:support.booking.customer.username }}: {{ support.message|truncatechars:70 }}</small>
+                    </div>
+                    <form method="post" action="{% url 'admin_support_resolve' support.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button class="icon-btn" title="Đánh dấu đã xử lý"><i class="fas fa-check"></i></button>
+                    </form>
+                </div>
+                {% empty %}
+                <div class="empty-state"><i class="fas fa-check"></i><br>Không có yêu cầu hỗ trợ.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+<style>
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    display: block;
+}
+.stat-card-link:hover .stat-card {
+    box-shadow: 0 8px 16px rgba(93, 58, 46, 0.15);
+    transform: translateY(-4px);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: vat_coffee_box_web
+    ports:
+      - "8000:8000"
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_SECRET_KEY: "django-insecure-change-this-in-docker"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DJANGO_DB_NAME: "/app/data/db.sqlite3"
+    volumes:
+      - ./data:/app/data
+      - ./media:/app/media
+    restart: unless-stopped

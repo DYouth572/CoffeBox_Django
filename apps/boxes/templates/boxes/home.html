@@ -1,0 +1,554 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vạt Coffee Box</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --brand-brown: #5d3a2e; }
+        body { background-color: #fcfcfc; font-family: 'Quicksand', sans-serif; }
+        html { scroll-behavior: smooth; }
+        .hero-section { background-color: var(--brand-brown); padding: 80px 60px; border-radius: 40px; color: white; box-shadow: 0 10px 30px rgba(93, 58, 46, 0.3); }
+        .card { border-radius: 25px !important; transition: all 0.3s ease; border: none !important; box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important; }
+        .card:hover { transform: translateY(-8px); box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important; }
+        .btn-brown { background-color: var(--brand-brown); color: white; border-radius: 20px; padding: 8px 20px; }
+        .btn-brown:hover { background-color: #4a2e25; color: white; }
+        .role-badge { font-weight: 700; color: var(--brand-brown); display: block; }
+        .avatar-nav { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 2px solid var(--brand-brown); cursor: pointer; }
+        .product-card {
+            border-radius: 20px !important;
+            padding: 20px;
+            border: 1px solid #f0f0f0 !important;
+            background: #fff;
+        }
+        .btn-add {
+            background-color: #5d3a2e;
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            border: none;
+        }
+        .cart-floating-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #5d3a2e;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            z-index: 1000;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        .cart-floating-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background-color: #5d3a2e; /* Màu nâu thương hiệu */
+        color: white;
+        padding: 12px 25px;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 700;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        z-index: 1050; /* Đảm bảo nó luôn nằm trên cùng */
+    }
+
+    /* Style cho các item trong giỏ hàng */
+    .cart-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    </style>
+</head>
+<body>
+
+<div class="container mt-4 mb-5">
+    <nav class="navbar mb-4 px-3 align-items-center">
+        <a class="navbar-brand fw-bold" href="#" style="font-size: 1.5rem; color: #5d3a2e;">Vạt Coffee</a>
+        <div class="d-flex align-items-center gap-3">
+            {% if request.user.is_authenticated %}
+                <div class="text-end">
+                    <div class="mb-0 fw-bold">{{ request.user.first_name|default:request.user.username }}</div>
+                    <small class="role-badge" style="font-size: 0.75rem;">{{ role|title }}</small>
+                </div>
+                <a href="{% url 'profile_edit' %}" title="Chỉnh sửa hồ sơ cá nhân">
+                    {% if request.user.avatar %}
+                        <img src="{{ request.user.avatar.url }}" class="avatar-nav" alt="Avatar">
+                    {% else %}
+                        <div class="avatar-nav bg-secondary d-flex align-items-center justify-content-center text-white fw-bold">{{ request.user.username|first|upper }}</div>
+                    {% endif %}
+                </a>
+                <a href="{% url 'logout' %}" class="text-danger text-decoration-none small">Đăng xuất</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-sm btn-brown px-3 rounded-pill">Đăng nhập</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if my_bookings %}
+    <div class="container mt-2 mb-4">
+        <h3 class="fw-bold mb-3 ps-2 text-[24px] d-flex align-items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left" style="color: #5d3a2e;"></i> <span>ĐƠN ĐẶT HIỆN TẠI</span>
+        </h3>
+        {% for booking in my_bookings %}
+        <div class="card p-4 mb-4" style="border: 1px solid #f0f0f0 !important; border-radius: 30px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.05) !important;">
+            <input type="hidden" class="active-booking-id" value="{{ booking.id }}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h3 class="fw-bold m-0">{{ booking.box.name }}</h3>
+                    <span class="badge" style="background-color: #e8f5e9; color: #2e7d32; border-radius: 20px;">{{ booking.get_status_display|upper }}</span>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center bg-light p-3 px-4 rounded-4 mb-3">
+                <span class="text-muted fw-bold text-uppercase" style="font-size: 0.8rem;">
+                    {% if booking.status == 'active' %}Còn lại{% else %}Trạng thái{% endif %}
+                </span>
+                {% if booking.status == 'active' %}
+                    <span class="js-countdown text-danger fw-bold" 
+                          data-start-time="{{ booking.start_time|date:'U' }}000" 
+                          data-end-time="{{ booking.end_time|date:'U' }}000">00:00:00</span>
+                {% else %}
+                    <span class="fw-bold" style="color: #5d3a2e;">{{ booking.get_status_display }}</span>
+                {% endif %}
+            </div>
+            {% if booking.cancellation_response_message %}
+                <div class="alert alert-warning small rounded-4">{{ booking.cancellation_response_message }}</div>
+            {% endif %}
+            <div class="d-flex justify-content-between align-items-center">
+                {% if booking.status == 'active' %}
+                    <button type="button" 
+                            class="btn btn-link text-info p-0 text-decoration-none" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#supportModal" 
+                            data-booking-id="{{ booking.id }}"> <i class="fa-solid fa-headset"></i> HỖ TRỢ
+                    </button>
+                {% else %}
+                    <div></div>
+                {% endif %}
+                <div class="d-flex gap-3 align-items-center">
+                    {% if booking.status == 'pending' or booking.status == 'confirmed' %}
+                    <button type="button" class="btn btn-link text-danger p-0 text-decoration-none small fw-bold"
+                            data-bs-toggle="modal"
+                            data-bs-target="#cancelBookingModal{{ booking.id }}">
+                        HỦY ĐƠN
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'booking_detail' booking.id %}" class="text-dark fw-bold small text-decoration-none">THEO DÕI HÓA ĐƠN ></a>
+                </div>
+            </div>
+        </div>
+        <div class="modal fade" id="cancelBookingModal{{ booking.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius: 30px; border: none; padding: 20px;">
+                    <div class="modal-body">
+                        <h4 class="fw-bold text-center mb-2">Yêu cầu hủy đơn</h4>
+                        <p class="text-muted small text-center">Yêu cầu hủy sẽ được nhân viên kiểm tra theo chính sách 6-24 giờ trước giờ đặt.</p>
+                        <form method="post" action="{% url 'request_booking_cancellation' booking.id %}">
+                            {% csrf_token %}
+                            <label class="form-label fw-bold small">Lý do hủy</label>
+                            <select name="reason" class="form-select rounded-pill mb-3" required>
+                                <option value="">Chọn lý do</option>
+                                <option value="Thay đổi kế hoạch">Thay đổi kế hoạch</option>
+                                <option value="Đặt nhầm">Đặt nhầm</option>
+                                <option value="Sự cố cá nhân">Sự cố cá nhân</option>
+                            </select>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-light rounded-pill flex-fill" data-bs-dismiss="modal">Đóng</button>
+                                <button type="submit" class="btn btn-brown rounded-pill flex-fill">Gửi yêu cầu</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <section class="hero-section text-white mb-5">
+        <h1 class="display-4 fw-bold">Chào mừng đến với <i>Vạt!</i></h1>
+        <a href="#booking-section" class="btn btn-light btn-lg rounded-pill px-4 mt-3 fw-bold" style="color: #5d3a2e;">ĐẶT BOX NGAY</a>
+    </section>
+
+    <h3 id="booking-section" class="fw-bold mb-4 ps-2" style="scroll-margin-top: 20px;">SƠ ĐỒ BOX CÒN TRỐNG</h3>
+    <div class="row">
+        {% for box in boxes %}
+           
+        <div class="col-md-4 mb-4">
+            <div class="card p-3 d-flex flex-column h-100">
+                <div class="mb-3" style="width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 15px;">
+                    {% if box.image %}<img src="{{ box.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">{% endif %}
+                </div>
+                <div class="text-start">
+                    <h5 class="fw-bold mb-1">{{ box.name }}</h5>
+                    <div class="text-muted mb-2 small"><span class="badge bg-light text-dark border">{{ box.category.name|default:"Box thường" }}</span> • {{ box.price_per_hour|floatformat:0 }}đ/H</div>
+                    <p class="small text-secondary mb-3">{{ box.description|truncatewords:15 }}</p>
+                    <!-- <button type="button" class="btn btn-brown w-100 rounded-pill mt-auto" data-bs-toggle="modal" data-bs-target="#bookingModal" data-box-id="{{ box.id }}" data-box-name="{{ box.name }}" data-price="{{ box.price_per_hour }}">ĐẶT NGAY</button> -->
+                     <button type="button" 
+                            class="btn btn-brown w-100 rounded-pill mt-auto" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#bookingModal" 
+                            data-box-id="{{ box.id }}" 
+                            data-box-name="{{ box.name }}" 
+                            data-price="{{ box.price_per_hour }}"
+                            onclick="saveBooking('{{ box.id }}')"> ĐẶT NGAY
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <h3 class="fw-bold mt-5 mb-4 ps-2">Thực đơn đặc sắc</h3>
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-3 mb-4">
+            <div class="card p-3 text-center">
+                <div class="mb-3" style="width: 100%; height: 150px; overflow: hidden; border-radius: 15px;">
+                    {% if product.image %}<img src="{{ product.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">{% endif %}
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="text-start"><h6 class="fw-bold m-0">{{ product.name }}</h6><p class="text-muted m-0 small">{{ product.price|floatformat:0 }}đ</p></div>
+                    <button class="btn-add" 
+                            data-id="{{ product.id }}" 
+                            data-name="{{ product.name }}" 
+                            data-price="{{ product.price }}" 
+                            onclick="handleAddToCart(this)">
+                        +
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 30px; border: none; overflow: hidden;">
+      <div class="modal-header border-0 justify-content-center pt-4">
+        <h4 class="fw-bold m-0">Xác nhận đặt Box</h4>
+      </div>
+      <form id="bookingForm" method="post">
+        {% csrf_token %}
+        <div class="modal-body p-4 text-center">
+          <p class="fw-bold mb-4" id="modalBoxName" style="color: #5d3a2e;">BOX 04</p>
+          
+          <div class="mb-3 text-start">
+            <label class="form-label fw-bold small text-muted">BẮT ĐẦU</label>
+            <input type="datetime-local" name="start_time" class="form-control rounded-pill px-3" required style="background: #f8f9fa; border: none;">
+          </div>
+          
+          <div class="mb-3 text-start">
+            <label class="form-label fw-bold small text-muted">THỜI LƯỢNG (GIỜ)</label>
+            <select name="duration" class="form-select rounded-pill px-3" id="durationSelect" style="background: #f8f9fa; border: none;">
+                <option value="1">1 Giờ</option>
+                <option value="2">2 Giờ</option>
+                <option value="3">3 Giờ</option>
+            </select>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center p-3 mt-3" style="background: #fdfaf9; border-radius: 20px;">
+            <span class="fw-bold text-muted">Dự kiến:</span>
+            <span class="fw-bold fs-4" id="totalPrice" style="color: #5d3a2e;">0đ</span>
+          </div>
+        </div>
+        
+        <div class="modal-footer border-0 justify-content-center pb-4">
+          <button type="button" class="btn btn-light rounded-pill px-5 py-2" data-bs-dismiss="modal">HỦY</button> 
+          <button type="submit" class="btn rounded-pill px-5 py-2" style="background-color: #5d3a2e; color: white;">Xác nhận đặt</button>
+          
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+    const bookingModal = document.getElementById('bookingModal');
+    const totalDisplay = document.getElementById('totalPrice');
+    const durationSelect = document.getElementById('durationSelect');
+    let currentPrice = 0; 
+
+    bookingModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget; 
+        const boxId = button.getAttribute('data-box-id'); // Lấy ID để gán URL
+        currentPrice = parseFloat(button.getAttribute('data-price')); 
+        
+        // CẤU HÌNH URL CHO FORM: Sửa lỗi không gửi được về Django
+        document.getElementById('bookingForm').action = "/bookings/book/" + boxId + "/";
+        
+        // Cập nhật tên box
+        document.getElementById('modalBoxName').innerText = button.getAttribute('data-box-name');
+        
+        calculateTotal();
+    });
+
+    function calculateTotal() {
+        if (!durationSelect) return;
+        const hours = parseInt(durationSelect.value);
+        const total = hours * currentPrice;
+        totalDisplay.innerText = total.toLocaleString('vi-VN') + 'đ';
+    }
+
+    durationSelect.addEventListener('change', calculateTotal);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('.js-countdown').forEach(el => {
+        const startTime = parseInt(el.getAttribute('data-start-time'));
+        const endTime = parseInt(el.getAttribute('data-end-time'));
+
+        function update() {
+            const now = new Date().getTime();
+
+            if (now < startTime) {
+                el.innerText = "Chưa đến giờ";
+                return;
+            }
+
+            if (now > endTime) {
+                el.innerText = "Đã kết thúc";
+                // reload after 3 seconds to refresh booking states
+                setTimeout(() => location.reload(), 3000);
+                return;
+            }
+
+            const d = endTime - now;
+            const h = Math.floor((d % (1000*60*60*24)) / (1000*60*60));
+            const m = Math.floor((d % (1000*60*60)) / (1000*60));
+            const s = Math.floor((d % (1000*60)) / 1000);
+            el.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        }
+
+        setInterval(update, 1000);
+        update();
+    });
+</script>
+
+<div class="modal fade" id="supportModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 30px; border: none; padding: 20px;">
+            <div class="modal-body text-center">
+                <i class="fa-solid fa-headset fa-3x mb-3" style="color: #5d3a2e;"></i>
+                <h4 class="fw-bold">Vạt có thể giúp gì cho bạn?</h4>
+                <p class="text-muted small">NHÂN VIÊN SẼ HỖ TRỢ BẠN NGAY LẬP TỨC</p>
+                <form id="supportForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="supportBookingId" name="booking_id">
+                    <textarea name="message" class="form-control my-3" rows="4" 
+                              placeholder="Ví dụ: Lấy thêm nước lọc, mượn đồ sạc pin..." 
+                              style="border-radius: 15px; background: #f8f9fa;"></textarea>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-light rounded-pill px-5" data-bs-dismiss="modal">HỦY</button>
+                        <button type="submit" class="btn btn-brown rounded-pill px-5" style="background-color: #5d3a2e;">GỬI YÊU CẦU</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Xử lý Modal Hỗ trợ
+    const supportModal = document.getElementById('supportModal');
+    supportModal.addEventListener('show.bs.modal', function (event) {
+        // Nút Hỗ trợ được nhấn
+        const button = event.relatedTarget;
+        // Lấy ID từ thuộc tính data-booking-id
+        const bookingId = button.getAttribute('data-booking-id');
+        
+        // Gán vào input ẩn trong form
+        document.getElementById('supportBookingId').value = bookingId;
+        console.log("Đã gắn Booking ID vào form:", bookingId); 
+    });
+
+    // Xử lý gửi form
+    document.getElementById('supportForm').onsubmit = function(e) {
+        e.preventDefault();
+        const bookingId = document.getElementById('supportBookingId').value;
+        
+        if (!bookingId) {
+            alert("Lỗi: Không tìm thấy ID đơn hàng!");
+            return;
+        }
+
+        const formData = new FormData(this);
+        fetch(`/bookings/support/${bookingId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert('Đã gửi yêu cầu hỗ trợ!');
+                bootstrap.Modal.getInstance(supportModal).hide();
+            } else {
+                alert('Lỗi server: ' + data.message);
+            }
+        });
+    };
+</script>
+</script>
+    <div class="cart-floating-btn" onclick="openCartModal()">
+        <i class="fa-solid fa-basket-shopping"></i> GIỎ HÀNG <span id="cart-count">0</span>
+    </div>
+
+    <div class="modal fade" id="cartModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 30px;">
+                <div class="modal-body p-4 text-center">
+                    <h4 class="fw-bold mb-4">GIỎ HÀNG CỦA BẠN</h4>
+                    <div id="cart-items" class="text-start"></div>
+                    <div class="mt-4 border-top pt-3 d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">TỔNG TIỀN MÓN</span>
+                        <h4 class="fw-bold" id="total-price">0đ</h4>
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-light rounded-pill flex-fill" data-bs-dismiss="modal">HỦY BỎ</button>
+                        <button class="btn btn-brown rounded-pill flex-fill" onclick="confirmOrder()">XÁC NHẬN GỌI</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script>
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+
+    // Khởi chạy khi load trang
+    updateCart();
+
+    function addToCart(id, name, price) {
+        let item = cart.find(i => i.id == id);
+        if (item) item.qty += 1;
+        else cart.push({id: id, name: name, price: price, qty: 1});
+        updateCart();
+        alert("Đã thêm " + name + " vào giỏ!");
+    }
+
+    function updateCart() {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        
+        const countEl = document.getElementById('cart-count');
+        if(countEl) countEl.innerText = cart.reduce((a, b) => a + b.qty, 0);
+        
+        let container = document.getElementById('cart-items');
+        if(container) {
+            container.innerHTML = cart.map(item => `
+                <div class="d-flex justify-content-between my-2 align-items-center">
+                    <span>${item.name} (${item.price}k)</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty(${item.id}, -1)">-</button>
+                        <span class="mx-2 fw-bold">${item.qty}</span>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty(${item.id}, 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        let total = cart.reduce((a, b) => a + (b.price * b.qty), 0);
+        const totalEl = document.getElementById('total-price');
+        if(totalEl) totalEl.innerText = total + "k";
+    }
+
+    function changeQty(id, delta) {
+        let item = cart.find(i => i.id == id);
+        if(item) {
+            item.qty += delta;
+            if (item.qty <= 0) cart = cart.filter(i => i.id != id);
+            updateCart();
+        }
+    }
+
+    function openCartModal() { 
+        new bootstrap.Modal(document.getElementById('cartModal')).show(); 
+    }
+</script>
+
+<script>
+    function handleAddToCart(button) {
+        const id = button.getAttribute('data-id');
+        const name = button.getAttribute('data-name');
+        const price = parseInt(button.getAttribute('data-price'));
+        
+        // Gọi lại hàm addToCart cũ của bạn
+        addToCart(id, name, price);
+    }
+
+
+    // 1. Định nghĩa hàm getCartItems() trước
+    function getCartItems() {
+        return JSON.parse(localStorage.getItem('cart') || '[]');
+    }
+
+    // 2. Định nghĩa hàm confirmOrder() duy nhất
+    async function confirmOrder() {
+        // Lấy ID từ thẻ input ẩn trong khối "ĐƠN ĐẶT HIỆN TẠI"
+        const bookingInput = document.querySelector('.active-booking-id');
+        const bookingId = bookingInput ? bookingInput.value : null;
+
+        if (!bookingId) {
+            alert("Bạn cần phải đang thuê một Box mới có thể gọi món!");
+            return;
+        }
+
+        // Lấy giỏ hàng từ localStorage (đã có sẵn id từ hàm addToCart)
+        const items = JSON.parse(localStorage.getItem('cart') || '[]');
+        if (items.length === 0) {
+            alert("Giỏ hàng đang trống!");
+            return;
+        }
+
+        try {
+            const response = await fetch('/orders/add/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ 
+                    booking_id: bookingId, 
+                    items: items 
+                })
+            });
+            
+            const data = await response.json();
+            if (response.ok && data.status === 'success') {
+                alert("Đã cộng món vào hóa đơn thành công!");
+                localStorage.removeItem('cart');
+                window.location.reload(); 
+            } else {
+                alert("Lỗi: " + (data.message || "Không thể gọi món"));
+            }
+        } catch (error) {
+            alert("Lỗi kết nối server!");
+        }
+    }
+</script>
+
+
+<script>
+    function saveBooking(boxId) {
+        // Lưu ID vào localStorage để trang chi tiết hoặc hàm gọi món lấy ra dùng
+        localStorage.setItem('currentBookingId', boxId);
+        
+        // Nếu bạn cần lấy thêm thông tin Box, có thể lưu luôn tại đây
+        console.log("Đã lưu Box ID:", boxId);
+    }
+</script>
+
+</body>
+</html>
